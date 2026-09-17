@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Scheme Sathi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        body {
+            background-color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            padding: 32px 28px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .brand {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .brand h2 {
+            font-size: 24px;
+            color: #1e293b;
+        }
+        .brand span {
+            color: #ff671f;
+        }
+        .brand p {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #2563eb;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background-color: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .btn-submit:hover {
+            background-color: #1d4ed8;
+        }
+        .alert {
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert.error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            display: block;
+        }
+        .alert.success {
+            background-color: #dcfce7;
+            color: #16a34a;
+            display: block;
+        }
+        .switch-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748b;
+        }
+        .switch-link a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .switch-link a:hover {
+            text-decoration: underline;
+        }
+        .home-link {
+            display: block;
+            text-align: center;
+            margin-top: 14px;
+            font-size: 13px;
+            color: #94a3b8;
+            text-decoration: none;
+        }
+        .home-link:hover {
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card">
+        <div class="brand">
+            <h2>🏛️ Scheme<span>Sathi</span></h2>
+            <p>Sign in to your account</p>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+
+            <button type="submit" class="btn-submit">Login</button>
+        </form>
+
+        <div class="switch-link">
+            Don't have an account? <a href="register.html">Register here</a>
+        </div>
+        <a href="index.html" class="home-link">← Back to Portal</a>
+    </div>
+
+    <script>
+        function handleLogin(e) {
+            e.preventDefault();
+            const alertBox = document.getElementById('alertBox');
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+
+            // Retrieve registered users from localStorage
+            let users = JSON.parse(localStorage.getItem('scheme_sathi_users')) || [];
+
+            // Check if users exist in scheme_sathi_users_db as well (backward compatibility)
+            const usersDb = JSON.parse(localStorage.getItem('scheme_sathi_users_db')) || {};
+            if (usersDb[email]) {
+                users.push(usersDb[email]);
+            }
+
+            // Find matching user
+            const foundUser = users.find(u => u.email.toLowerCase() === email && u.password === password);
+
+            if (!foundUser) {
+                alertBox.className = 'alert error';
+                alertBox.textContent = 'Invalid email or password. Please try again.';
+                return;
+            }
+
+            // Save active logged-in user in localStorage
+            localStorage.setItem('scheme_sathi_current_user', JSON.stringify({
+                name: foundUser.name,
+                email: foundUser.email,
+                role: foundUser.role || 'Citizen',
+                avatarColor: foundUser.avatarColor || '#2563eb',
+                profile: foundUser.profile || null
+            }));
+
+            alertBox.className = 'alert success';
+            alertBox.textContent = 'Login successful! Redirecting...';
+
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 800);
+        }
+    </script>
+
+</body>
+</html>
