@@ -1,7 +1,7 @@
-
-//  COMPREHENSIVE DATASET OF 28 AUTHENTIC REAL INDIAN GOVERNMENT SCHEMES
-
-const SCHEMES_DATA = [
+// ==========================================================================
+// 1. COMPREHENSIVE DATASET OF 28 AUTHENTIC REAL INDIAN GOVERNMENT SCHEMES
+// ==========================================================================
+let SCHEMES_DATA = [
     {
         id: 'pm-kisan',
         name: 'PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)',
@@ -3441,14 +3441,15 @@ function quickFillDemo(role) {
 }
 
 /**
- * Handle Citizen Sign In
+ * Handle Citizen Sign In (Direct Database / API Endpoint)
  */
-function handleLoginSubmit(event) {
+async function handleLoginSubmit(event) {
     if (event) event.preventDefault();
 
     const emailInput = document.getElementById('loginEmail');
     const passInput = document.getElementById('loginPassword');
     const rememberMe = document.getElementById('rememberMeCheckbox');
+    const loginBtn = document.querySelector('#loginForm button[type="submit"]');
 
     if (!emailInput || !passInput) return;
 
@@ -3460,63 +3461,97 @@ function handleLoginSubmit(event) {
         return;
     }
 
-    // 1. Check against client-side JavaScript user database
-    const usersDb = getUsersDatabase();
-    const user = usersDb[email];
-
-    if (!user) {
-        showAuthAlert(`No citizen account found for "${email}". Click "Register Citizen" to create an account, or try a 1-Click Demo account.`);
-        return;
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';
     }
 
-    if (user.password !== password) {
-        showAuthAlert('Incorrect password entered. Please check your password or choose a demo account.');
-        return;
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Authentication failed. Please check your credentials.');
+        }
+
+        const user = data.user || {};
+        const token = data.token;
+
+        if (token) {
+            localStorage.setItem('scheme_sathi_jwt_token', token);
+        }
+
+        APP_STATE.currentUser = {
+            name: user.name || 'Citizen',
+            email: user.email || email,
+            role: user.role || 'Citizen',
+            phone: user.phone || '',
+            avatarColor: user.avatarColor || '#2563eb',
+            profile: user.profile || { ...DEFAULT_PROFILE },
+            savedSchemeIds: user.savedSchemeIds || []
+        };
+
+        if (!rememberMe || rememberMe.checked) {
+            localStorage.setItem('scheme_sathi_current_user', JSON.stringify(APP_STATE.currentUser));
+        }
+
+        if (APP_STATE.currentUser.profile) {
+            APP_STATE.userProfile = { ...APP_STATE.currentUser.profile };
+            localStorage.setItem('scheme_sathi_profile', JSON.stringify(APP_STATE.userProfile));
+        }
+
+        syncWizardInputsFromProfile();
+        renderUserAuth();
+        renderSchemes();
+        renderSavedSchemes();
+        renderDashboard();
+
+        closeAuthModal();
+        showToast(`Welcome back, ${APP_STATE.currentUser.name}!`, 'success');
+    } catch (err) {
+        console.warn('API login check fallback:', err);
+        const usersDb = getUsersDatabase();
+        const fallbackUser = usersDb[email];
+        if (fallbackUser && fallbackUser.password === password) {
+            APP_STATE.currentUser = {
+                name: fallbackUser.name,
+                email: fallbackUser.email,
+                role: fallbackUser.role,
+                phone: fallbackUser.phone || '',
+                avatarColor: fallbackUser.avatarColor || '#2563eb',
+                profile: fallbackUser.profile || { ...DEFAULT_PROFILE },
+                savedSchemeIds: fallbackUser.savedSchemeIds || []
+            };
+            localStorage.setItem('scheme_sathi_current_user', JSON.stringify(APP_STATE.currentUser));
+            APP_STATE.userProfile = { ...fallbackUser.profile };
+            localStorage.setItem('scheme_sathi_profile', JSON.stringify(APP_STATE.userProfile));
+            syncWizardInputsFromProfile();
+            renderUserAuth();
+            renderSchemes();
+            renderSavedSchemes();
+            renderDashboard();
+            closeAuthModal();
+            showToast(`Welcome back, ${fallbackUser.name}!`, 'success');
+        } else {
+            showAuthAlert(err.message || 'Incorrect email or password.');
+        }
+    } finally {
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In to Account';
+        }
     }
-
-    // 2. Authentication successful -> update active state session
-    APP_STATE.currentUser = {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone || '',
-        avatarColor: user.avatarColor || '#2563eb',
-        profile: user.profile || { ...DEFAULT_PROFILE },
-        savedSchemeIds: user.savedSchemeIds || []
-    };
-
-    // Save session in localStorage
-    if (!rememberMe || rememberMe.checked) {
-        localStorage.setItem('scheme_sathi_current_user', JSON.stringify(APP_STATE.currentUser));
-    }
-
-    // Synchronize citizen demographic profile to matching engine
-    APP_STATE.userProfile = { ...user.profile };
-    localStorage.setItem('scheme_sathi_profile', JSON.stringify(APP_STATE.userProfile));
-
-    if (user.savedSchemeIds && user.savedSchemeIds.length > 0) {
-        APP_STATE.savedSchemeIds = [...user.savedSchemeIds];
-        localStorage.setItem('scheme_sathi_saved', JSON.stringify(APP_STATE.savedSchemeIds));
-    }
-
-    // 3. Sync wizard input controls to reflect new user's profile
-    syncWizardInputsFromProfile();
-
-    // 4. Update UI displays
-    renderUserAuth();
-    renderSchemes();
-    renderSavedSchemes();
-    renderDashboard();
-
-    // 5. Close dialog and notify
-    closeAuthModal();
-    showToast(`Welcome back, ${user.name}! Personalized schemes updated.`, 'success');
 }
 
 /**
- * Handle Citizen Registration
+ * Handle Citizen Registration (Direct Database / API Endpoint)
  */
-function handleRegisterSubmit(event) {
+async function handleRegisterSubmit(event) {
     if (event) event.preventDefault();
 
     const fullNameInput = document.getElementById('regFullName');
@@ -3530,6 +3565,7 @@ function handleRegisterSubmit(event) {
     const occSelect = document.getElementById('regOccupation');
     const incSelect = document.getElementById('regIncome');
     const catSelect = document.getElementById('regCategory');
+    const regBtn = document.querySelector('#registerForm button[type="submit"]');
 
     const fullName = fullNameInput ? fullNameInput.value.trim() : '';
     const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
@@ -3569,80 +3605,92 @@ function handleRegisterSubmit(event) {
         return;
     }
 
-    // Check if email already exists in JS object / localStorage database
-    const usersDb = getUsersDatabase();
-    if (usersDb[email]) {
-        showAuthAlert(`An account with email "${email}" already exists. Please switch to Sign In.`);
-        return;
+    if (regBtn) {
+        regBtn.disabled = true;
+        regBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating account...';
     }
 
-    // Generate random avatar color
     const palette = ['#2563eb', '#059669', '#7c3aed', '#d97706', '#db2777', '#0891b2'];
     const avatarColor = palette[Math.floor(Math.random() * palette.length)];
 
-    // Create new citizen record
-    const newUser = {
-        name: fullName,
-        email: email,
-        password: password,
-        phone: '',
-        role: `Citizen (${occupation})`,
-        avatarColor: avatarColor,
-        profile: {
-            age: age,
-            gender: gender,
-            state: state,
-            district: district || 'All',
-            areaType: 'Rural',
-            occupation: occupation,
-            incomeBracket: incomeBracket,
-            socialCategory: socialCategory,
-            education: occupation === 'Student' ? 'Undergraduate' : '10th Pass',
-            landHolding: occupation === 'Farmer' ? 'Small' : 'None',
-            businessType: (occupation === 'Business Owner' || occupation === 'Self Employed') ? 'Micro' : 'None',
-            hasDisability: false,
-            isMinority: false
-        },
-        savedSchemeIds: [],
-        registeredAt: new Date().toISOString().split('T')[0]
+    const profileData = {
+        age: age,
+        gender: gender,
+        state: state,
+        district: district || 'All',
+        areaType: 'Rural',
+        occupation: occupation,
+        incomeBracket: incomeBracket,
+        socialCategory: socialCategory,
+        education: occupation === 'Student' ? 'Undergraduate' : '10th Pass',
+        landHolding: occupation === 'Farmer' ? 'Small' : 'None',
+        businessType: (occupation === 'Business Owner' || occupation === 'Self Employed') ? 'Micro' : 'None',
+        hasDisability: false,
+        isMinority: false
     };
 
-    // Store in JavaScript object database & localStorage
-    usersDb[email] = newUser;
-    saveUsersDatabase(usersDb);
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: fullName,
+                email: email,
+                password: password,
+                role: `Citizen (${occupation})`,
+                avatarColor: avatarColor,
+                profile: profileData
+            })
+        });
 
-    // Auto sign-in new citizen
-    APP_STATE.currentUser = {
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        phone: newUser.phone,
-        avatarColor: newUser.avatarColor,
-        profile: newUser.profile,
-        savedSchemeIds: []
-    };
-    localStorage.setItem('scheme_sathi_current_user', JSON.stringify(APP_STATE.currentUser));
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Registration failed.');
+        }
 
-    // Sync profile to matching engine
-    APP_STATE.userProfile = { ...newUser.profile };
-    localStorage.setItem('scheme_sathi_profile', JSON.stringify(APP_STATE.userProfile));
+        if (data.token) {
+            localStorage.setItem('scheme_sathi_jwt_token', data.token);
+        }
 
-    // Sync wizard form inputs
-    syncWizardInputsFromProfile();
+        const user = data.user || {};
+        APP_STATE.currentUser = {
+            name: user.name || fullName,
+            email: user.email || email,
+            role: user.role || `Citizen (${occupation})`,
+            avatarColor: user.avatarColor || avatarColor,
+            profile: user.profile || profileData,
+            savedSchemeIds: []
+        };
+        localStorage.setItem('scheme_sathi_current_user', JSON.stringify(APP_STATE.currentUser));
 
-    // Re-render UI
-    renderUserAuth();
-    renderSchemes();
-    renderSavedSchemes();
-    renderDashboard();
+        const usersDb = getUsersDatabase();
+        usersDb[email] = { ...APP_STATE.currentUser, password: password };
+        saveUsersDatabase(usersDb);
 
-    // Reset registration form
-    const regForm = document.getElementById('registerForm');
-    if (regForm) regForm.reset();
+        APP_STATE.userProfile = { ...APP_STATE.currentUser.profile };
+        localStorage.setItem('scheme_sathi_profile', JSON.stringify(APP_STATE.userProfile));
 
-    closeAuthModal();
-    showToast(`Account created! Welcome, ${newUser.name}. Showing your eligible schemes.`, 'success');
-    navigateTo('recommendations');
+        syncWizardInputsFromProfile();
+        renderUserAuth();
+        renderSchemes();
+        renderSavedSchemes();
+        renderDashboard();
+
+        const regForm = document.getElementById('registerForm');
+        if (regForm) regForm.reset();
+
+        closeAuthModal();
+        showToast(`Account created successfully! Welcome, ${APP_STATE.currentUser.name}.`, 'success');
+        navigateTo('recommendations');
+    } catch (err) {
+        console.error('Registration API error:', err);
+        showAuthAlert(err.message || 'Failed to register account.');
+    } finally {
+        if (regBtn) {
+            regBtn.disabled = false;
+            regBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Citizen Account';
+        }
+    }
 }
 
 /**
@@ -4284,6 +4332,12 @@ function openUploadDocumentModal(presetType) {
         }
     }
 
+    const saveBtn = document.getElementById('saveDocBtn');
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Submit & Save Document`;
+    }
+
     if (modal) {
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -4415,7 +4469,7 @@ async function handleDocumentUploadSubmit(event) {
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Document`;
+            saveBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Submit & Save Document`;
         }
     }
 }
@@ -4695,5 +4749,59 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error checking auth URL params:', e);
     }
 
+    // 10. Fetch Live Schemes Data Directly from Database REST Endpoint (/api/schemes)
+    fetchSchemesFromDatabase();
+
     console.log('🏛️ Scheme Sathi initialized successfully. Total Schemes Loaded:', SCHEMES_DATA.length);
 });
+
+// ==========================================================================
+// 18. DATABASE REST API INTEGRATION
+// ==========================================================================
+
+/**
+ * Fetches schemes directly from the backend database endpoint (/api/schemes)
+ */
+async function fetchSchemesFromDatabase() {
+    updateDbStatusBadge('connecting', 'DB: Connecting...');
+    try {
+        const response = await fetch('/api/schemes');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+            const dataSource = response.headers.get('X-Data-Source') || 'Database';
+            console.log(`[Database Fetch] Successfully fetched ${data.length} schemes directly from ${dataSource}.`);
+            SCHEMES_DATA = data;
+
+            // Re-render views with fresh database records
+            renderSchemes();
+            renderSavedSchemes();
+            renderDashboard();
+            renderTracker();
+
+            updateDbStatusBadge('connected', `Live DB (${data.length} Schemes)`);
+        } else {
+            updateDbStatusBadge('fallback', 'Local Fallback');
+        }
+    } catch (err) {
+        console.warn('[Database Fetch] Database API not active, running on local fallback schemes dataset:', err);
+        updateDbStatusBadge('fallback', 'Local Fallback');
+    }
+}
+
+/**
+ * Updates UI database status badge
+ */
+function updateDbStatusBadge(state, text) {
+    const badge = document.getElementById('dbStatusBadge');
+    const badgeText = document.getElementById('dbStatusText');
+    const badgeDot = document.getElementById('dbStatusDot');
+    if (!badge) return;
+
+    if (badgeText) badgeText.textContent = text;
+    if (badgeDot) {
+        badgeDot.className = `db-dot ${state}`;
+    }
+}

@@ -1,20 +1,167 @@
 import { useState } from 'react';
 
-const inputStyle={width:'100%',padding:'10px 14px',border:'1px solid #cbd5e1',borderRadius:'8px',fontSize:'15px',outline:'none'};
-const pageStyle={minHeight:'100vh',background:'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px',fontFamily:"'Plus Jakarta Sans', sans-serif"};
-const cardStyle={background:'#fff',width:'100%',maxWidth:'400px',padding:'32px 28px',borderRadius:'12px',boxShadow:'0 4px 20px rgba(0,0,0,.08)'};
-function Shell({subtitle,children}){return <div style={pageStyle}><div style={cardStyle}><div style={{textAlign:'center',marginBottom:24}}><h2 style={{fontSize:24,color:'#1e293b',margin:0}}>🏛️ Scheme<span style={{color:'#ff671f'}}>Sathi</span></h2><p style={{fontSize:14,color:'#64748b',marginTop:4}}>{subtitle}</p></div>{children}</div></div>}
-function Field({label,type='text',value,onChange,placeholder,minLength}){return <div style={{marginBottom:16}}><label style={{display:'block',fontSize:14,fontWeight:600,color:'#334155',marginBottom:6}}>{label}</label><input style={inputStyle} type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} minLength={minLength} required /></div>}
-export function Login(){const[email,setEmail]=useState('');
-    const[password,setPassword]=useState('');
-    const[error,setError]=useState('');
-    function submit(e){e.preventDefault();
-        const users=JSON.parse(localStorage.getItem('scheme_sathi_users')||'[]');
-        const db=JSON.parse(localStorage.getItem('scheme_sathi_users_db')||'{}');
-        if(db[email.trim().toLowerCase()])users.push(db[email.trim().toLowerCase()]);
-        const u=users.find(x=>x.email.toLowerCase()===email.trim().toLowerCase()&&x.password===password);
-        if(!u)return setError('Invalid email or password. Please try again.');
-        localStorage.setItem('scheme_sathi_current_user',JSON.stringify({name:u.name,email:u.email,role:u.role||'Citizen',avatarColor:u.avatarColor||'#2563eb',profile:u.profile||null}));
-        location.href='/';
-    }return <Shell subtitle="Sign in to your account">{error&&<div style={{padding:'10px 12px',borderRadius:6,fontSize:14,marginBottom:16,background:'#fee2e2',color:'#dc2626'}}>{error}</div>}<form onSubmit={submit}><Field label="Email Address" type="email" value={email} onChange={setEmail} placeholder="Enter your email"/><Field label="Password" type="password" value={password} onChange={setPassword} placeholder="Enter your password"/><button style={{width:'100%',padding:12,background:'#2563eb',color:'#fff',border:0,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer'}}>Login</button></form><p style={{textAlign:'center',marginTop:20,fontSize:14,color:'#64748b'}}>Don't have an account? <a href="/register" style={{color:'#2563eb',fontWeight:600}}>Register here</a></p><a href="/" style={{display:'block',textAlign:'center',marginTop:14,fontSize:13,color:'#94a3b8'}}>← Back to Portal</a></Shell>}
-export function Register(){const[f,setF]=useState({name:'',email:'',password:'',confirm:''});const[error,setError]=useState('');function set(k,v){setF(x=>({...x,[k]:v}))}function submit(e){e.preventDefault();if(f.password!==f.confirm)return setError('Passwords do not match!');const users=JSON.parse(localStorage.getItem('scheme_sathi_users')||'[]');if(users.some(u=>u.email.toLowerCase()===f.email.trim().toLowerCase()))return setError('An account with this email already exists.');const u={name:f.name.trim(),email:f.email.trim().toLowerCase(),password:f.password,role:'Citizen',avatarColor:'#2563eb'};users.push(u);localStorage.setItem('scheme_sathi_users',JSON.stringify(users));localStorage.setItem('scheme_sathi_current_user',JSON.stringify(u));location.href='/';}return <Shell subtitle="Create a new account">{error&&<div style={{padding:'10px 12px',borderRadius:6,fontSize:14,marginBottom:16,background:'#fee2e2',color:'#dc2626'}}>{error}</div>}<form onSubmit={submit}><Field label="Full Name" value={f.name} onChange={v=>set('name',v)} placeholder="Enter your full name"/><Field label="Email Address" type="email" value={f.email} onChange={v=>set('email',v)} placeholder="Enter your email"/><Field label="Password" type="password" value={f.password} onChange={v=>set('password',v)} placeholder="Create a password (min 6 chars)" minLength={6}/><Field label="Confirm Password" type="password" value={f.confirm} onChange={v=>set('confirm',v)} placeholder="Confirm your password"/><button style={{width:'100%',padding:12,background:'#2563eb',color:'#fff',border:0,borderRadius:8,fontSize:16,fontWeight:600,cursor:'pointer'}}>Register</button></form><p style={{textAlign:'center',marginTop:20,fontSize:14,color:'#64748b'}}>Already have an account? <a href="/login" style={{color:'#2563eb',fontWeight:600}}>Login here</a></p><a href="/" style={{display:'block',textAlign:'center',marginTop:14,fontSize:13,color:'#94a3b8'}}>← Back to Portal</a></Shell>}
+const inputStyle = { width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '15px', outline: 'none' };
+const pageStyle = { minHeight: '100vh', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Plus Jakarta Sans', sans-serif" };
+const cardStyle = { background: '#fff', width: '100%', maxWidth: '400px', padding: '32px 28px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,.08)' };
+
+function Shell({ subtitle, children }) {
+  return (
+    <div style={pageStyle}>
+      <div style={cardStyle}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <h2 style={{ fontSize: 24, color: '#1e293b', margin: 0 }}>🏛️ Scheme<span style={{ color: '#ff671f' }}>Sathi</span></h2>
+          <p style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>{subtitle}</p>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, type = 'text', value, onChange, placeholder, minLength }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#334155', marginBottom: 6 }}>{label}</label>
+      <input style={inputStyle} type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} minLength={minLength} required />
+    </div>
+  );
+}
+
+export function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid credentials');
+
+      if (data.token) {
+        localStorage.setItem('scheme_sathi_jwt_token', data.token);
+      }
+      const u = data.user || {};
+      localStorage.setItem('scheme_sathi_current_user', JSON.stringify({
+        name: u.name || 'Citizen',
+        email: u.email || email,
+        role: u.role || 'Citizen',
+        avatarColor: u.avatarColor || '#2563eb',
+        profile: u.profile || null
+      }));
+      location.href = '/?auth=login';
+    } catch (err) {
+      // Fallback check
+      const users = JSON.parse(localStorage.getItem('scheme_sathi_users') || '[]');
+      const db = JSON.parse(localStorage.getItem('scheme_sathi_users_db') || '{}');
+      if (db[email.trim().toLowerCase()]) users.push(db[email.trim().toLowerCase()]);
+      const u = users.find(x => x.email.toLowerCase() === email.trim().toLowerCase() && x.password === password);
+      if (u) {
+        localStorage.setItem('scheme_sathi_current_user', JSON.stringify({
+          name: u.name,
+          email: u.email,
+          role: u.role || 'Citizen',
+          avatarColor: u.avatarColor || '#2563eb',
+          profile: u.profile || null
+        }));
+        location.href = '/?auth=login';
+      } else {
+        setError(err.message || 'Invalid email or password.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Shell subtitle="Sign in to your account">
+      {error && <div style={{ padding: '10px 12px', borderRadius: 6, fontSize: 14, marginBottom: 16, background: '#fee2e2', color: '#dc2626' }}>{error}</div>}
+      <form onSubmit={submit}>
+        <Field label="Email Address" type="email" value={email} onChange={setEmail} placeholder="Enter your email" />
+        <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="Enter your password" />
+        <button disabled={loading} style={{ width: '100%', padding: 12, background: '#2563eb', color: '#fff', border: 0, borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
+          {loading ? 'Signing in...' : 'Login'}
+        </button>
+      </form>
+      <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748b' }}>
+        Don't have an account? <a href="/register" style={{ color: '#2563eb', fontWeight: 600 }}>Register here</a>
+      </p>
+      <a href="/" style={{ display: 'block', textAlign: 'center', marginTop: 14, fontSize: 13, color: '#94a3b8' }}>← Back to Portal</a>
+    </Shell>
+  );
+}
+
+export function Register() {
+  const [f, setF] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  function set(k, v) { setF(x => ({ ...x, [k]: v })); }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (f.password !== f.confirm) return setError('Passwords do not match!');
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: f.name.trim(),
+          email: f.email.trim().toLowerCase(),
+          password: f.password,
+          role: 'Citizen',
+          avatarColor: '#2563eb'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
+
+      if (data.token) {
+        localStorage.setItem('scheme_sathi_jwt_token', data.token);
+      }
+      const u = data.user || {};
+      localStorage.setItem('scheme_sathi_current_user', JSON.stringify({
+        name: u.name || f.name.trim(),
+        email: u.email || f.email.trim().toLowerCase(),
+        role: u.role || 'Citizen',
+        avatarColor: u.avatarColor || '#2563eb'
+      }));
+      location.href = '/?auth=registered';
+    } catch (err) {
+      setError(err.message || 'Registration failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Shell subtitle="Create a new account">
+      {error && <div style={{ padding: '10px 12px', borderRadius: 6, fontSize: 14, marginBottom: 16, background: '#fee2e2', color: '#dc2626' }}>{error}</div>}
+      <form onSubmit={submit}>
+        <Field label="Full Name" value={f.name} onChange={v => set('name', v)} placeholder="Enter your full name" />
+        <Field label="Email Address" type="email" value={f.email} onChange={v => set('email', v)} placeholder="Enter your email" />
+        <Field label="Password" type="password" value={f.password} onChange={v => set('password', v)} placeholder="Create a password (min 6 chars)" minLength={6} />
+        <Field label="Confirm Password" type="password" value={f.confirm} onChange={v => set('confirm', v)} placeholder="Confirm your password" />
+        <button disabled={loading} style={{ width: '100%', padding: 12, background: '#2563eb', color: '#fff', border: 0, borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
+          {loading ? 'Creating account...' : 'Register'}
+        </button>
+      </form>
+      <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#64748b' }}>
+        Already have an account? <a href="/login" style={{ color: '#2563eb', fontWeight: 600 }}>Login here</a>
+      </p>
+      <a href="/" style={{ display: 'block', textAlign: 'center', marginTop: 14, fontSize: 13, color: '#94a3b8' }}>← Back to Portal</a>
+    </Shell>
+  );
+}

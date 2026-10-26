@@ -13,6 +13,9 @@ export function mountLegacySchemeSathi(root) {
   script.async = false;
   script.dataset.schemeSathiLegacy = 'true';
   script.onload = () => {
+    // The legacy file registers its initializer on DOMContentLoaded. Since React
+    // injects the markup after the browser's DOMContentLoaded event, trigger the
+    // event once after the legacy script has registered its listener.
     document.dispatchEvent(new Event('DOMContentLoaded'));
   };
   document.body.appendChild(script);
